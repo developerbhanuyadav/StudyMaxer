@@ -20,12 +20,31 @@ if ($_GET['logout'] ?? '' === '1') {
     exit;
 }
 
+// Handle batch removal
+if ($_GET['remove_batch'] ?? '' !== '') {
+    $batchIdToRemove = $_GET['remove_batch'];
+    $enrolledBatches = isset($_SESSION['enrolledBatches']) ? $_SESSION['enrolledBatches'] : [];
+    
+    foreach ($enrolledBatches as $key => $batch) {
+        if ($batch['_id'] === $batchIdToRemove) {
+            unset($enrolledBatches[$key]);
+            $_SESSION['enrolledBatches'] = array_values($enrolledBatches); // Re-index array
+            $success = 'Batch removed successfully!';
+            break;
+        }
+    }
+    
+    header('Location: admin.php');
+    exit;
+}
+
 // Handle batch addition
 if ($_POST['action'] ?? '' === 'add_batch') {
+    $enrolledBatches = isset($_SESSION['enrolledBatches']) ? $_SESSION['enrolledBatches'] : [];
+    
+    // Handle single batch addition
     $batchId = $_POST['batch_id'] ?? '';
     if ($batchId) {
-        $enrolledBatches = isset($_SESSION['enrolledBatches']) ? $_SESSION['enrolledBatches'] : [];
-        
         // Load all batches to find the one to add
         $allBatches = [];
         try {
@@ -35,7 +54,7 @@ if ($_POST['action'] ?? '' === 'add_batch') {
                 $allBatches = $data['batches'];
             }
         } catch (Exception $e) {
-            $error = 'Failed to load batches';
+            $error = 'Failed to load batches: ' . $e->getMessage();
         }
         
         // Find and add the batch
@@ -61,6 +80,59 @@ if ($_POST['action'] ?? '' === 'add_batch') {
             }
         }
     }
+    
+    // Handle multiple batch addition
+    $batchIds = $_POST['batch_ids'] ?? [];
+    if (!empty($batchIds)) {
+        // Load all batches to find the ones to add
+        $allBatches = [];
+        try {
+            $response = file_get_contents('https://pwxavengers-proxy.pw-avengers.workers.dev/api/batches?page=1&limit=3000');
+            $data = json_decode($response, true);
+            if ($data && isset($data['batches'])) {
+                $allBatches = $data['batches'];
+            }
+        } catch (Exception $e) {
+            $error = 'Failed to load batches: ' . $e->getMessage();
+        }
+        
+        $addedCount = 0;
+        $alreadyAddedCount = 0;
+        
+        foreach ($batchIds as $batchId) {
+            // Find the batch
+            foreach ($allBatches as $batch) {
+                if ($batch['_id'] === $batchId) {
+                    // Check if not already enrolled
+                    $alreadyEnrolled = false;
+                    foreach ($enrolledBatches as $enrolled) {
+                        if ($enrolled['_id'] === $batchId) {
+                            $alreadyEnrolled = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!$alreadyEnrolled) {
+                        $enrolledBatches[] = $batch;
+                        $addedCount++;
+                    } else {
+                        $alreadyAddedCount++;
+                    }
+                    break;
+                }
+            }
+        }
+        
+        if ($addedCount > 0) {
+            $_SESSION['enrolledBatches'] = $enrolledBatches;
+            $success = "Successfully added $addedCount batch(es)!";
+            if ($alreadyAddedCount > 0) {
+                $success .= " $alreadyAddedCount batch(es) were already added.";
+            }
+        } else {
+            $error = "No new batches were added. $alreadyAddedCount batch(es) were already added.";
+        }
+    }
 }
 
 // Load batches for display
@@ -73,7 +145,7 @@ if (isset($_SESSION['admin_logged_in'])) {
             $batches = $data['batches'];
         }
     } catch (Exception $e) {
-        $error = 'Failed to load batches';
+        $error = 'Failed to load batches: ' . $e->getMessage();
     }
 }
 ?>
@@ -210,6 +282,35 @@ if (isset($_SESSION['admin_logged_in'])) {
         <div class="row">
             <div class="col-12">
                 <h2 class="mb-4">Add Batches</h2>
+                
+                <!-- Current Enrolled Batches -->
+                <?php 
+                $currentEnrolled = isset($_SESSION['enrolledBatches']) ? $_SESSION['enrolledBatches'] : [];
+                if (!empty($currentEnrolled)): 
+                ?>
+                <div class="alert alert-info">
+                    <h5><i class="fas fa-info-circle me-2"></i>Currently Enrolled Batches (<?php echo count($currentEnrolled); ?>)</h5>
+                    <div class="row">
+                        <?php foreach (array_slice($currentEnrolled, 0, 5) as $batch): ?>
+                        <div class="col-md-6 col-lg-4 mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small><strong><?php echo htmlspecialchars($batch['name']); ?></strong></small>
+                                <a href="?remove_batch=<?php echo urlencode($batch['_id']); ?>" 
+                                   class="btn btn-sm btn-outline-danger" 
+                                   onclick="return confirm('Remove this batch?')">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                        <?php if (count($currentEnrolled) > 5): ?>
+                        <div class="col-12 mt-2">
+                            <small class="text-muted">... and <?php echo count($currentEnrolled) - 5; ?> more</small>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
                 
                 <?php if (empty($batches)): ?>
                 <div class="loading">

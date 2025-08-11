@@ -1,7 +1,24 @@
 <?php
 // Load enrolled batches from localStorage equivalent (using session for demo)
 session_start();
+
+// Handle clear all batches for testing
+if (isset($_GET['clear']) && $_GET['clear'] === '1') {
+    unset($_SESSION['enrolledBatches']);
+    header('Location: index.php');
+    exit;
+}
+
 $enrolledBatches = isset($_SESSION['enrolledBatches']) ? $_SESSION['enrolledBatches'] : [];
+
+// Debug: Log session data for troubleshooting
+if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+    echo "<pre>Session data: " . print_r($_SESSION, true) . "</pre>";
+    echo "<pre>Enrolled batches count: " . count($enrolledBatches) . "</pre>";
+    if (!empty($enrolledBatches)) {
+        echo "<pre>First batch: " . print_r($enrolledBatches[0], true) . "</pre>";
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -80,8 +97,19 @@ $enrolledBatches = isset($_SESSION['enrolledBatches']) ? $_SESSION['enrolledBatc
                 </div>
                 <div class="col-md-6 text-end">
                     <?php if (!empty($enrolledBatches)): ?>
+                    <span class="badge bg-light text-dark me-3">
+                        <i class="fas fa-book me-2"></i><?php echo count($enrolledBatches); ?> Enrolled
+                    </span>
+                    <?php endif; ?>
                     <a href="admin/admin.php" class="btn btn-outline-light">
                         <i class="fas fa-cog me-2"></i>Admin Panel
+                    </a>
+                    <a href="?debug=1" class="btn btn-outline-light ms-2">
+                        <i class="fas fa-bug me-2"></i>Debug
+                    </a>
+                    <?php if (!empty($enrolledBatches)): ?>
+                    <a href="?clear=1" class="btn btn-outline-warning ms-2" onclick="return confirm('Clear all enrolled batches?')">
+                        <i class="fas fa-trash me-2"></i>Clear All
                     </a>
                     <?php endif; ?>
                 </div>
