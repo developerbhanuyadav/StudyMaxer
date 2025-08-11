@@ -61,134 +61,299 @@ try {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(45deg, #f093fb, #f5576c);
+            --accent-gradient: linear-gradient(45deg, #667eea, #764ba2);
+            --shadow-light: 0 4px 20px rgba(0,0,0,0.08);
+            --shadow-medium: 0 8px 30px rgba(0,0,0,0.12);
+            --border-radius: 15px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary-gradient);
             color: white;
-            padding: 1rem 0;
+            padding: 1.5rem 0;
+            box-shadow: var(--shadow-medium);
+            position: relative;
+            overflow: hidden;
         }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .header .container {
+            position: relative;
+            z-index: 1;
+        }
+
         .section-title {
-            color: #333;
-            margin-bottom: 20px;
-            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-weight: 700;
+            font-size: 1.8rem;
+            position: relative;
+            padding-left: 20px;
         }
+
+        .section-title::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 30px;
+            background: var(--accent-gradient);
+            border-radius: 2px;
+        }
+
         .lecture-container {
             overflow-x: auto;
             white-space: nowrap;
-            padding: 10px 0;
+            padding: 15px 0;
+            scrollbar-width: thin;
+            scrollbar-color: #667eea #f1f1f1;
         }
+
+        .lecture-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .lecture-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .lecture-container::-webkit-scrollbar-thumb {
+            background: var(--accent-gradient);
+            border-radius: 4px;
+        }
+
         .lecture-card {
             display: inline-block;
-            width: 280px;
-            height: 200px;
-            margin-right: 15px;
+            width: 300px;
+            height: 220px;
+            margin-right: 20px;
             border: none;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-light);
+            transition: var(--transition);
             cursor: pointer;
             background: white;
             position: relative;
+            overflow: hidden;
         }
+
+        .lecture-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--accent-gradient);
+        }
+
         .lecture-card:hover {
-            transform: translateY(-3px);
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-medium);
         }
+
         .lecture-content {
-            padding: 15px;
+            padding: 20px;
             height: 100%;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
         }
+
         .lecture-time {
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: var(--accent-gradient);
             color: white;
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            font-weight: bold;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
             display: inline-block;
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
         }
+
         .lecture-status {
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 0.7rem;
-            font-weight: bold;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 600;
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 15px;
+            right: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
+
         .status-live {
-            background: #dc3545;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
             color: white;
+            animation: pulse 2s infinite;
         }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 107, 107, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
+        }
+
         .status-pending {
-            background: #ffc107;
-            color: #333;
-        }
-        .status-completed {
-            background: #28a745;
+            background: linear-gradient(45deg, #ffa726, #ff9800);
             color: white;
         }
+
+        .status-completed {
+            background: linear-gradient(45deg, #66bb6a, #4caf50);
+            color: white;
+        }
+
         .lecture-title {
-            font-size: 0.9rem;
-            font-weight: bold;
-            color: #333;
-            margin: 10px 0;
-            line-height: 1.3;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 15px 0;
+            line-height: 1.4;
             overflow: hidden;
             text-overflow: ellipsis;
             display: -webkit-box;
             -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
         }
-        .subjects-scroll {
-            overflow-x: auto;
-            white-space: nowrap;
-            padding: 10px 0;
+
+        .subjects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 15px 0;
         }
+
         .subject-card {
-            display: inline-block;
-            width: 200px;
-            margin-right: 15px;
             border: none;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-light);
+            transition: var(--transition);
             cursor: pointer;
+            background: white;
+            overflow: hidden;
+            position: relative;
         }
+
+        .subject-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--secondary-gradient);
+        }
+
         .subject-card:hover {
-            transform: translateY(-3px);
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-medium);
         }
+
         .subject-image {
-            height: 120px;
+            height: 140px;
             object-fit: cover;
-            border-radius: 10px 10px 0 0;
+            width: 100%;
+            transition: var(--transition);
         }
-        .subject-name {
-            padding: 10px;
-            text-align: center;
-            font-weight: bold;
-            color: #333;
-        }
-        .lets-study-btn {
-            background: linear-gradient(45deg, #f093fb, #f5576c);
-            border: none;
-            color: white;
-            border-radius: 25px;
-            padding: 12px 30px;
-            font-weight: bold;
-        }
-        .lets-study-btn:hover {
-            color: white;
+
+        .subject-card:hover .subject-image {
             transform: scale(1.05);
         }
+
+        .subject-name {
+            padding: 15px;
+            text-align: center;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+
+        .lets-study-btn {
+            background: var(--secondary-gradient);
+            border: none;
+            color: white;
+            border-radius: 30px;
+            padding: 15px 40px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 20px rgba(240, 147, 251, 0.4);
+            transition: var(--transition);
+        }
+
+        .lets-study-btn:hover {
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(240, 147, 251, 0.6);
+        }
+
         .error-message {
             text-align: center;
             padding: 30px;
-            color: #dc3545;
-            background: #f8d7da;
-            border-radius: 10px;
+            color: #e74c3c;
+            background: linear-gradient(45deg, #ffebee, #ffcdd2);
+            border-radius: var(--border-radius);
             margin: 20px 0;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .card {
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-light);
+            background: white;
+        }
+
+        .alert {
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-light);
+        }
+
+        .btn-outline-light {
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 25px;
+            padding: 10px 25px;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .btn-outline-light:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-1px);
+        }
+
+        .text-muted {
+            color: #7f8c8d !important;
+        }
+
+        .img-fluid {
+            border-radius: var(--border-radius);
         }
     </style>
 </head>
@@ -213,37 +378,8 @@ try {
     <div class="container mt-4">
         <div class="row">
             <div class="col-12">
-                <!-- Batch Info -->
-                <div class="mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col-md-3">
-                                    <img src="<?php echo htmlspecialchars($batch['previewImage'] ?? 'https://via.placeholder.com/300x200?text=No+Image'); ?>" 
-                                         class="img-fluid rounded" alt="<?php echo htmlspecialchars($batch['name']); ?>">
-                                </div>
-                                <div class="col-md-9">
-                                    <h2><?php echo htmlspecialchars($batch['name']); ?></h2>
-                                    <p class="text-muted"><?php echo htmlspecialchars($batch['byName'] ?? ''); ?></p>
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <strong><i class="fas fa-language me-2"></i>Language:</strong> <?php echo htmlspecialchars($batch['language']); ?>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <strong><i class="fas fa-calendar me-2"></i>Exam:</strong> <?php echo htmlspecialchars($batch['exam']); ?>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <strong><i class="fas fa-user-graduate me-2"></i>Class:</strong> <?php echo htmlspecialchars($batch['class']); ?>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Let's Study Button -->
-                <div class="text-center mb-4">
+                <div class="text-center mb-5">
                     <button class="btn lets-study-btn" onclick="startStudying()">
                         <i class="fas fa-play me-2"></i>Let's Study
                     </button>
@@ -266,7 +402,9 @@ try {
                         <div class="lecture-container">
                             <?php foreach ($todaysClasses as $lecture): ?>
                                 <?php
+                                // Fix the time format - convert to proper timezone and format
                                 $startTime = new DateTime($lecture['startTime']);
+                                $startTime->setTimezone(new DateTimeZone('Asia/Kolkata')); // Set to Indian timezone
                                 $timeString = $startTime->format('h:i A');
                                 
                                 $statusClass = 'status-pending';
@@ -311,7 +449,7 @@ try {
                             <i class="fas fa-info-circle me-2"></i>No subjects available for this batch.
                         </div>
                     <?php else: ?>
-                        <div class="subjects-scroll">
+                        <div class="subjects-grid">
                             <?php foreach ($subjects as $subject): ?>
                                 <div class="subject-card" onclick="openSubject('<?php echo $subject['subject_id']; ?>')">
                                     <img src="<?php echo htmlspecialchars($subject['subject_image']); ?>" 
