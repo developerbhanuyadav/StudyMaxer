@@ -1,152 +1,68 @@
-# Studymaxer - Educational Platform
+# Studymaxer - Batch Management System
 
-A comprehensive educational platform for managing and accessing study batches, lectures, and course materials.
+A simple and responsive batch management system for educational content.
 
 ## Features
 
-### 🏠 Home Page (index.php)
-- Displays enrolled batches with beautiful cards
-- "Enroll Now" and "Explore" buttons for each batch
-- Responsive design with modern UI
-- Navigation to admin panel
+- **Admin Panel**: Add batches from external API to local storage
+- **User Interface**: Clean, mobile-responsive display of enrolled batches
+- **JSON Storage**: Batches are stored in `batches.json` file
+- **Mobile Responsive**: Optimized for all device sizes
 
-### 🔐 Admin Panel (admin/admin.php)
-- Password-protected admin access (default: `admin123`)
-- Fetches batches from API: `https://pwxavengers-proxy.pw-avengers.workers.dev/api/batches?page=1&limit=3000`
-- Select individual batches or use "Select All" functionality
-- Add multiple batches at once
-- Beautiful grid layout with batch information
+## How to Use
 
-### 📚 Batch Details (batch.php)
-- Shows batch information and preview image
-- "Let's Study" button for quick access
-- **Today's Classes Section**: Horizontal scrolling display of today's lectures
-- **Subjects Section**: Horizontal scrolling display of available subjects
-- Filters out PDF content, shows only video lectures
-- Click on lectures to start watching
+### 1. Access Admin Panel
+- Go to `admin/admin.php`
+- Login with password: `admin123`
 
-### 📖 Subject Page (subject.php)
-- Displays subject information and image
-- Shows all chapters/topics for the selected subject
-- Statistics for videos, notes, and exercises
-- Click on chapters to access lectures
+### 2. Add Batches
+- Browse available batches from the API
+- Select individual batches or use "Select All"
+- Click "Add Selected Batches" to save to `batches.json`
 
-### 📝 Chapter Page (chapter.php)
-- Tabbed interface with:
-  - **Lectures Tab**: All video lectures for the chapter
-  - **Notes Tab**: Coming soon
-  - **DPP Tab**: Coming soon
-- Lecture cards with duration, status, and date
-- Click on lectures to start watching
-
-### 🎥 Video Player (play.php)
-- Handles encrypted video URLs
-- Responsive video player
-- Error handling and loading states
-- Keyboard shortcuts (ESC to go back)
-
-## API Integration
-
-The application integrates with several APIs:
-
-1. **Batches API**: `https://pwxavengers-proxy.pw-avengers.workers.dev/api/batches?page=1&limit=3000`
-2. **Today's Schedule**: `https://pwxavengers-proxy.pw-avengers.workers.dev/api/batch/{batch_id}/todays-schedule`
-3. **Subjects**: `https://api.tejtimes.live/api/pw/details/subject.php?batch_id={batch_id}`
-4. **Topics/Chapters**: `https://pwxavengers-proxy.pw-avengers.workers.dev/api/batch/{batch_id}/subject/{subject_id}/topics`
-5. **Lecture Content**: `https://pwxavengers-proxy.pw-avengers.workers.dev/api/batch/{batch_id}/subject/{subject_id}/topic/{topic_id}/all-contents?type=vidoes`
-6. **Video URL**: `https://pwxavengers-proxy.pw-avengers.workers.dev/api/url?batch_id={batch_id}&schedule_id={schedule_id}`
+### 3. View Enrolled Batches
+- Go to `index.php` to see all enrolled batches
+- Clean, mobile-responsive interface
+- No admin buttons visible to users
 
 ## File Structure
 
 ```
-studymaxer/
-├── index.php              # Home page with enrolled batches
-├── batch.php              # Individual batch details page
-├── subject.php            # Subject page with chapters
-├── chapter.php            # Chapter page with lectures
-├── play.php               # Video player page
+├── index.php              # Main user interface
+├── batches.json           # Storage for enrolled batches
 ├── admin/
-│   └── admin.php          # Admin panel for batch management
-└── README.md              # This file
+│   └── admin.php         # Admin panel for managing batches
+├── enroll_batch.php      # API for enrolling in batches
+├── batch.php             # Individual batch view
+├── chapter.php           # Chapter management
+├── subject.php           # Subject management
+└── play.php              # Video player
 ```
 
-## Setup Instructions
+## Mobile Responsive Design
 
-1. **Upload Files**: Upload all files to your web server
-2. **Access Home Page**: Navigate to `index.php`
-3. **Admin Access**: Go to `admin/admin.php` and use password: `admin123`
-4. **Add Batches**: In admin panel, select and add batches
-5. **Start Learning**: Return to home page and explore your enrolled batches
+The website is fully optimized for mobile devices with:
+- Responsive grid layout
+- Touch-friendly buttons
+- Optimized font sizes
+- Proper spacing for small screens
 
-## Features in Detail
+## Technical Details
 
-### Batch Management
-- Fetch batches from external API
-- Select multiple batches at once
-- Store enrolled batches in localStorage
-- Prevent duplicate enrollments
+- **Storage**: JSON file-based storage (`batches.json`)
+- **API**: Fetches batches from external API
+- **Responsive**: Bootstrap 5 with custom mobile optimizations
+- **Session Management**: PHP sessions for admin authentication
 
-### Lecture Navigation
-- Today's classes with live status indicators
-- Subject-wise chapter organization
-- Lecture filtering (videos only, no PDFs)
-- Duration and completion status display
+## Setup
 
-### Video Playback
-- Encrypted video URL handling
-- Responsive video player
-- Error handling and fallbacks
-- Loading states and user feedback
+1. Ensure PHP is installed
+2. Place files in your web server directory
+3. Make sure `batches.json` is writable
+4. Access via web browser
 
-### User Experience
-- Consistent header across all pages
-- Responsive design for all devices
-- Smooth animations and transitions
-- Intuitive navigation with back buttons
-- Loading states and error messages
+## Admin Access
 
-## Customization
-
-### Change Admin Password
-Edit the `ADMIN_PASSWORD` constant in `admin/admin.php`:
-```javascript
-const ADMIN_PASSWORD = 'your_new_password';
-```
-
-### Modify API Endpoints
-Update the API URLs in respective files if needed.
-
-### Styling
-All styling is done with Bootstrap 5 and custom CSS. Modify the `<style>` sections in each file to customize the appearance.
-
-## Browser Compatibility
-
-- Chrome (recommended)
-- Firefox
-- Safari
-- Edge
-- Mobile browsers
-
-## Dependencies
-
-- Bootstrap 5.3.0
-- Font Awesome 6.0.0
-- Modern JavaScript (ES6+)
-
-## Security Notes
-
-- Admin password is stored in client-side JavaScript (consider server-side authentication for production)
-- Video URLs are encrypted and handled securely
-- All API calls use HTTPS
-
-## Support
-
-For issues or questions:
-1. Check browser console for errors
-2. Verify API endpoints are accessible
-3. Ensure all files are properly uploaded
-4. Check file permissions on server
-
----
-
-**Studymaxer** - Empowering education through technology! 🎓
+- **URL**: `/admin/admin.php`
+- **Password**: `admin123`
+- **Features**: Add/remove batches, view enrolled batches

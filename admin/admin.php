@@ -20,12 +20,39 @@ if ($_GET['logout'] ?? '' === '1') {
     exit;
 }
 
+// Handle batch removal
+if ($_GET['remove_batch'] ?? '' !== '') {
+    $batchIdToRemove = $_GET['remove_batch'];
+    $enrolledBatches = [];
+    if (file_exists('../batches.json')) {
+        $enrolledBatches = json_decode(file_get_contents('../batches.json'), true) ?: [];
+    }
+    
+    foreach ($enrolledBatches as $key => $batch) {
+        if ($batch['_id'] === $batchIdToRemove) {
+            unset($enrolledBatches[$key]);
+            $enrolledBatches = array_values($enrolledBatches); // Re-index array
+            file_put_contents('../batches.json', json_encode($enrolledBatches, JSON_PRETTY_PRINT));
+            $success = 'Batch removed successfully!';
+            break;
+        }
+    }
+    
+    header('Location: admin.php');
+    exit;
+}
+
 // Handle batch addition
 if ($_POST['action'] ?? '' === 'add_batch') {
+    // Load current enrolled batches from JSON file
+    $enrolledBatches = [];
+    if (file_exists('../batches.json')) {
+        $enrolledBatches = json_decode(file_get_contents('../batches.json'), true) ?: [];
+    }
+    
+    // Handle single batch addition
     $batchId = $_POST['batch_id'] ?? '';
     if ($batchId) {
-        $enrolledBatches = isset($_SESSION['enrolledBatches']) ? $_SESSION['enrolledBatches'] : [];
-        
         // Load all batches to find the one to add
         $allBatches = [];
         try {
@@ -35,7 +62,7 @@ if ($_POST['action'] ?? '' === 'add_batch') {
                 $allBatches = $data['batches'];
             }
         } catch (Exception $e) {
-            $error = 'Failed to load batches';
+            $error = 'Failed to load batches: ' . $e->getMessage();
         }
         
         // Find and add the batch
@@ -52,13 +79,66 @@ if ($_POST['action'] ?? '' === 'add_batch') {
                 
                 if (!$alreadyEnrolled) {
                     $enrolledBatches[] = $batch;
-                    $_SESSION['enrolledBatches'] = $enrolledBatches;
+                    file_put_contents('../batches.json', json_encode($enrolledBatches, JSON_PRETTY_PRINT));
                     $success = 'Batch added successfully!';
                 } else {
                     $error = 'Batch is already added!';
                 }
                 break;
             }
+        }
+    }
+    
+    // Handle multiple batch addition
+    $batchIds = $_POST['batch_ids'] ?? [];
+    if (!empty($batchIds)) {
+        // Load all batches to find the ones to add
+        $allBatches = [];
+        try {
+            $response = file_get_contents('https://pwxavengers-proxy.pw-avengers.workers.dev/api/batches?page=1&limit=3000');
+            $data = json_decode($response, true);
+            if ($data && isset($data['batches'])) {
+                $allBatches = $data['batches'];
+            }
+        } catch (Exception $e) {
+            $error = 'Failed to load batches: ' . $e->getMessage();
+        }
+        
+        $addedCount = 0;
+        $alreadyAddedCount = 0;
+        
+        foreach ($batchIds as $batchId) {
+            // Find the batch
+            foreach ($allBatches as $batch) {
+                if ($batch['_id'] === $batchId) {
+                    // Check if not already enrolled
+                    $alreadyEnrolled = false;
+                    foreach ($enrolledBatches as $enrolled) {
+                        if ($enrolled['_id'] === $batchId) {
+                            $alreadyEnrolled = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!$alreadyEnrolled) {
+                        $enrolledBatches[] = $batch;
+                        $addedCount++;
+                    } else {
+                        $alreadyAddedCount++;
+                    }
+                    break;
+                }
+            }
+        }
+        
+        if ($addedCount > 0) {
+            file_put_contents('../batches.json', json_encode($enrolledBatches, JSON_PRETTY_PRINT));
+            $success = "Successfully added $addedCount batch(es)!";
+            if ($alreadyAddedCount > 0) {
+                $success .= " $alreadyAddedCount batch(es) were already added.";
+            }
+        } else {
+            $error = "No new batches were added. $alreadyAddedCount batch(es) were already added.";
         }
     }
 }
@@ -73,7 +153,7 @@ if (isset($_SESSION['admin_logged_in'])) {
             $batches = $data['batches'];
         }
     } catch (Exception $e) {
-        $error = 'Failed to load batches';
+        $error = 'Failed to load batches: ' . $e->getMessage();
     }
 }
 ?>
@@ -91,12 +171,17 @@ if (isset($_SESSION['admin_logged_in'])) {
             color: white;
             padding: 1rem 0;
         }
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0;
+        }
         .batch-card {
             border: none;
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             transition: transform 0.3s ease;
             margin-bottom: 20px;
+            height: 100%;
         }
         .batch-card:hover {
             transform: translateY(-5px);
@@ -111,7 +196,8 @@ if (isset($_SESSION['admin_logged_in'])) {
             border: none;
             color: white;
             border-radius: 25px;
-            padding: 8px 20px;
+            padding: 8px 15px;
+            font-size: 0.85rem;
         }
         .btn-add:hover {
             color: white;
@@ -119,17 +205,25 @@ if (isset($_SESSION['admin_logged_in'])) {
         }
         .batch-info {
             padding: 15px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
         }
         .batch-title {
             font-weight: bold;
             color: #333;
             margin-bottom: 10px;
             font-size: 0.9rem;
+            line-height: 1.3;
         }
         .batch-meta {
             color: #666;
             font-size: 0.8rem;
             margin-bottom: 15px;
+            flex-grow: 1;
+        }
+        .batch-meta div {
+            margin-bottom: 3px;
         }
         .login-container {
             max-width: 400px;
@@ -148,6 +242,67 @@ if (isset($_SESSION['admin_logged_in'])) {
             text-align: center;
             padding: 50px;
         }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            .batch-image {
+                height: 120px;
+            }
+            .batch-title {
+                font-size: 0.85rem;
+            }
+            .batch-meta {
+                font-size: 0.75rem;
+            }
+            .btn-add {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+            .container {
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+            .row {
+                margin-left: -10px;
+                margin-right: -10px;
+            }
+            .col-md-6, .col-lg-4 {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            .login-container {
+                margin: 50px auto;
+                padding: 20px;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .header {
+                padding: 0.5rem 0;
+            }
+            .header h1 {
+                font-size: 1.3rem;
+            }
+            .batch-image {
+                height: 100px;
+            }
+            .batch-info {
+                padding: 10px;
+            }
+            .batch-title {
+                font-size: 0.8rem;
+            }
+            .batch-meta {
+                font-size: 0.7rem;
+            }
+            .btn-add {
+                padding: 5px 10px;
+                font-size: 0.75rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -155,18 +310,18 @@ if (isset($_SESSION['admin_logged_in'])) {
     <header class="header">
         <div class="container">
             <div class="row align-items-center">
-                <div class="col-md-6">
+                <div class="col-12 text-center">
                     <h1 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>Studymaxer Admin</h1>
-                </div>
-                <div class="col-md-6 text-end">
-                    <a href="../index.php" class="btn btn-outline-light">
-                        <i class="fas fa-home me-2"></i>Back to Home
-                    </a>
-                    <?php if (isset($_SESSION['admin_logged_in'])): ?>
-                    <a href="?logout=1" class="btn btn-outline-light ms-2">
-                        <i class="fas fa-sign-out-alt me-2"></i>Logout
-                    </a>
-                    <?php endif; ?>
+                    <div class="mt-2">
+                        <a href="../index.php" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-home me-1"></i>Home
+                        </a>
+                        <?php if (isset($_SESSION['admin_logged_in'])): ?>
+                        <a href="?logout=1" class="btn btn-outline-light btn-sm ms-2">
+                            <i class="fas fa-sign-out-alt me-1"></i>Logout
+                        </a>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -211,6 +366,38 @@ if (isset($_SESSION['admin_logged_in'])) {
             <div class="col-12">
                 <h2 class="mb-4">Add Batches</h2>
                 
+                <!-- Current Enrolled Batches -->
+                <?php 
+                $currentEnrolled = [];
+                if (file_exists('../batches.json')) {
+                    $currentEnrolled = json_decode(file_get_contents('../batches.json'), true) ?: [];
+                }
+                if (!empty($currentEnrolled)): 
+                ?>
+                <div class="alert alert-info">
+                    <h5><i class="fas fa-info-circle me-2"></i>Currently Enrolled Batches (<?php echo count($currentEnrolled); ?>)</h5>
+                    <div class="row">
+                        <?php foreach (array_slice($currentEnrolled, 0, 5) as $batch): ?>
+                        <div class="col-12 col-sm-6 col-lg-4 mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="flex-grow-1 me-2"><strong><?php echo htmlspecialchars($batch['name']); ?></strong></small>
+                                <a href="?remove_batch=<?php echo urlencode($batch['_id']); ?>" 
+                                   class="btn btn-sm btn-outline-danger flex-shrink-0" 
+                                   onclick="return confirm('Remove this batch?')">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                        <?php if (count($currentEnrolled) > 5): ?>
+                        <div class="col-12 mt-2">
+                            <small class="text-muted">... and <?php echo count($currentEnrolled) - 5; ?> more</small>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+                
                 <?php if (empty($batches)): ?>
                 <div class="loading">
                     <i class="fas fa-exclamation-triangle fa-2x mb-3 text-danger"></i>
@@ -221,7 +408,7 @@ if (isset($_SESSION['admin_logged_in'])) {
                 <!-- Select All Section -->
                 <div class="select-all-container">
                     <div class="row align-items-center">
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6 mb-2 mb-md-0">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="select-all">
                                 <label class="form-check-label" for="select-all">
@@ -229,9 +416,9 @@ if (isset($_SESSION['admin_logged_in'])) {
                                 </label>
                             </div>
                         </div>
-                        <div class="col-md-6 text-end">
+                        <div class="col-12 col-md-6 text-center text-md-end">
                             <button class="btn btn-success" onclick="addSelectedBatches()">
-                                <i class="fas fa-plus me-2"></i>Add Selected Batches
+                                <i class="fas fa-plus me-1"></i>Add Selected Batches
                             </button>
                         </div>
                     </div>
@@ -240,13 +427,13 @@ if (isset($_SESSION['admin_logged_in'])) {
                 <!-- Batches Grid -->
                 <div class="row">
                     <?php foreach ($batches as $batch): ?>
-                    <div class="col-md-6 col-lg-4">
+                    <div class="col-12 col-sm-6 col-lg-4 mb-3">
                         <div class="card batch-card">
-                            <div class="card-header bg-transparent">
+                            <div class="card-header bg-transparent py-2">
                                 <div class="form-check">
                                     <input class="form-check-input batch-checkbox" type="checkbox" 
                                            value="<?php echo htmlspecialchars($batch['_id']); ?>">
-                                    <label class="form-check-label">Select</label>
+                                    <label class="form-check-label small">Select</label>
                                 </div>
                             </div>
                             <img src="<?php echo htmlspecialchars($batch['previewImage'] ?? 'https://via.placeholder.com/400x200?text=No+Image'); ?>" 
@@ -254,15 +441,15 @@ if (isset($_SESSION['admin_logged_in'])) {
                             <div class="batch-info">
                                 <h6 class="batch-title"><?php echo htmlspecialchars($batch['name']); ?></h6>
                                 <div class="batch-meta">
-                                    <div><i class="fas fa-language me-2"></i><?php echo htmlspecialchars($batch['language']); ?></div>
-                                    <div><i class="fas fa-calendar me-2"></i><?php echo htmlspecialchars($batch['exam']); ?></div>
-                                    <div><i class="fas fa-user-graduate me-2"></i><?php echo htmlspecialchars($batch['class']); ?></div>
+                                    <div><i class="fas fa-language me-1"></i><?php echo htmlspecialchars($batch['language']); ?></div>
+                                    <div><i class="fas fa-calendar me-1"></i><?php echo htmlspecialchars($batch['exam']); ?></div>
+                                    <div><i class="fas fa-user-graduate me-1"></i><?php echo htmlspecialchars($batch['class']); ?></div>
                                 </div>
                                 <form method="POST" style="display: inline;">
                                     <input type="hidden" name="action" value="add_batch">
                                     <input type="hidden" name="batch_id" value="<?php echo htmlspecialchars($batch['_id']); ?>">
-                                    <button type="submit" class="btn btn-add w-100">
-                                        <i class="fas fa-plus me-2"></i>Add Batch
+                                    <button type="submit" class="btn btn-add w-100 mt-auto">
+                                        <i class="fas fa-plus me-1"></i>Add Batch
                                     </button>
                                 </form>
                             </div>

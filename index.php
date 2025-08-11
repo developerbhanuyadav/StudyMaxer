@@ -1,7 +1,9 @@
 <?php
-// Load enrolled batches from localStorage equivalent (using session for demo)
-session_start();
-$enrolledBatches = isset($_SESSION['enrolledBatches']) ? $_SESSION['enrolledBatches'] : [];
+// Load enrolled batches from batches.json file
+$enrolledBatches = [];
+if (file_exists('batches.json')) {
+    $enrolledBatches = json_decode(file_get_contents('batches.json'), true) ?: [];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -17,12 +19,17 @@ $enrolledBatches = isset($_SESSION['enrolledBatches']) ? $_SESSION['enrolledBatc
             color: white;
             padding: 1rem 0;
         }
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0;
+        }
         .batch-card {
             border: none;
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             transition: transform 0.3s ease;
             margin-bottom: 20px;
+            height: 100%;
         }
         .batch-card:hover {
             transform: translateY(-5px);
@@ -37,14 +44,16 @@ $enrolledBatches = isset($_SESSION['enrolledBatches']) ? $_SESSION['enrolledBatc
             border: none;
             color: white;
             border-radius: 25px;
-            padding: 10px 25px;
+            padding: 10px 15px;
+            font-size: 0.9rem;
         }
         .btn-explore {
             background: linear-gradient(45deg, #f093fb, #f5576c);
             border: none;
             color: white;
             border-radius: 25px;
-            padding: 10px 25px;
+            padding: 10px 15px;
+            font-size: 0.9rem;
         }
         .btn-enroll:hover, .btn-explore:hover {
             color: white;
@@ -52,21 +61,93 @@ $enrolledBatches = isset($_SESSION['enrolledBatches']) ? $_SESSION['enrolledBatc
         }
         .batch-info {
             padding: 15px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
         }
         .batch-title {
             font-weight: bold;
             color: #333;
             margin-bottom: 10px;
+            font-size: 1.1rem;
+            line-height: 1.3;
         }
         .batch-meta {
             color: #666;
             font-size: 0.9rem;
             margin-bottom: 15px;
+            flex-grow: 1;
+        }
+        .batch-meta div {
+            margin-bottom: 5px;
         }
         .no-batches {
             text-align: center;
-            padding: 50px;
+            padding: 50px 20px;
             color: #666;
+        }
+        .no-batches h4 {
+            margin-bottom: 15px;
+        }
+        .no-batches p {
+            margin-bottom: 20px;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            .batch-image {
+                height: 150px;
+            }
+            .batch-title {
+                font-size: 1rem;
+            }
+            .batch-meta {
+                font-size: 0.8rem;
+            }
+            .btn-enroll, .btn-explore {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+            .container {
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+            .row {
+                margin-left: -10px;
+                margin-right: -10px;
+            }
+            .col-md-6, .col-lg-4 {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .header {
+                padding: 0.5rem 0;
+            }
+            .header h1 {
+                font-size: 1.3rem;
+            }
+            .batch-image {
+                height: 120px;
+            }
+            .batch-info {
+                padding: 10px;
+            }
+            .batch-title {
+                font-size: 0.9rem;
+            }
+            .batch-meta {
+                font-size: 0.75rem;
+            }
+            .btn-enroll, .btn-explore {
+                padding: 6px 10px;
+                font-size: 0.75rem;
+            }
         }
     </style>
 </head>
@@ -75,14 +156,14 @@ $enrolledBatches = isset($_SESSION['enrolledBatches']) ? $_SESSION['enrolledBatc
     <header class="header">
         <div class="container">
             <div class="row align-items-center">
-                <div class="col-md-6">
+                <div class="col-12 text-center">
                     <h1 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>Studymaxer</h1>
-                </div>
-                <div class="col-md-6 text-end">
                     <?php if (!empty($enrolledBatches)): ?>
-                    <a href="admin/admin.php" class="btn btn-outline-light">
-                        <i class="fas fa-cog me-2"></i>Admin Panel
-                    </a>
+                    <div class="mt-2">
+                        <span class="badge bg-light text-dark">
+                            <i class="fas fa-book me-2"></i><?php echo count($enrolledBatches); ?> Enrolled Batches
+                        </span>
+                    </div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -93,7 +174,7 @@ $enrolledBatches = isset($_SESSION['enrolledBatches']) ? $_SESSION['enrolledBatc
     <div class="container mt-4">
         <div class="row">
             <div class="col-12">
-                <h2 class="mb-4">Your Enrolled Batches</h2>
+                <h2 class="mb-4 text-center">Your Enrolled Batches</h2>
                 <div id="enrolled-batches">
                     <?php if (empty($enrolledBatches)): ?>
                         <div class="no-batches">
@@ -105,7 +186,7 @@ $enrolledBatches = isset($_SESSION['enrolledBatches']) ? $_SESSION['enrolledBatc
                     <?php else: ?>
                         <div class="row">
                             <?php foreach ($enrolledBatches as $batch): ?>
-                                <div class="col-md-6 col-lg-4">
+                                <div class="col-12 col-sm-6 col-lg-4 mb-3">
                                     <div class="card batch-card">
                                         <img src="<?php echo htmlspecialchars($batch['previewImage'] ?? 'https://via.placeholder.com/400x200?text=No+Image'); ?>" 
                                              class="batch-image" alt="<?php echo htmlspecialchars($batch['name']); ?>">
@@ -116,12 +197,12 @@ $enrolledBatches = isset($_SESSION['enrolledBatches']) ? $_SESSION['enrolledBatc
                                                 <div><i class="fas fa-calendar me-2"></i><?php echo htmlspecialchars($batch['exam']); ?></div>
                                                 <div><i class="fas fa-user-graduate me-2"></i><?php echo htmlspecialchars($batch['class']); ?></div>
                                             </div>
-                                            <div class="d-flex gap-2">
+                                            <div class="d-flex gap-2 mt-auto">
                                                 <button class="btn btn-enroll flex-fill" onclick="enrollBatch('<?php echo $batch['_id']; ?>')">
-                                                    <i class="fas fa-user-plus me-2"></i>Enroll Now
+                                                    <i class="fas fa-user-plus me-1"></i>Enroll
                                                 </button>
                                                 <button class="btn btn-explore flex-fill" onclick="exploreBatch('<?php echo $batch['_id']; ?>')">
-                                                    <i class="fas fa-play me-2"></i>Explore
+                                                    <i class="fas fa-play me-1"></i>Explore
                                                 </button>
                                             </div>
                                         </div>
