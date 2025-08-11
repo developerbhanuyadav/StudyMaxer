@@ -42,6 +42,41 @@ if ($_GET['remove_batch'] ?? '' !== '') {
     exit;
 }
 
+// Handle manual batch addition
+if ($_POST['action'] ?? '' === 'add_manual_batch') {
+    // Load current enrolled batches from JSON file
+    $enrolledBatches = [];
+    if (file_exists('../batches.json')) {
+        $enrolledBatches = json_decode(file_get_contents('../batches.json'), true) ?: [];
+    }
+    
+    // Get form data
+    $batchName = $_POST['batch_name'] ?? '';
+    $batchLanguage = $_POST['batch_language'] ?? '';
+    $batchExam = $_POST['batch_exam'] ?? '';
+    $batchClass = $_POST['batch_class'] ?? '';
+    $batchImage = $_POST['batch_image'] ?? '';
+    
+    if ($batchName && $batchLanguage && $batchExam && $batchClass) {
+        // Create new batch object
+        $newBatch = [
+            '_id' => 'manual_' . time() . '_' . rand(1000, 9999),
+            'name' => $batchName,
+            'language' => $batchLanguage,
+            'exam' => $batchExam,
+            'class' => $batchClass,
+            'previewImage' => $batchImage ?: 'https://via.placeholder.com/400x200?text=' . urlencode($batchName)
+        ];
+        
+        // Add to enrolled batches
+        $enrolledBatches[] = $newBatch;
+        file_put_contents('../batches.json', json_encode($enrolledBatches, JSON_PRETTY_PRINT));
+        $success = 'Batch added successfully!';
+    } else {
+        $error = 'Please fill all required fields!';
+    }
+}
+
 // Handle batch addition
 if ($_POST['action'] ?? '' === 'add_batch') {
     // Load current enrolled batches from JSON file
@@ -366,6 +401,57 @@ if (isset($_SESSION['admin_logged_in'])) {
             <div class="col-12">
                 <h2 class="mb-4">Add Batches</h2>
                 
+                <!-- Manual Batch Addition Form -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-plus me-2"></i>Add New Batch Manually</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST">
+                            <input type="hidden" name="action" value="add_manual_batch">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="batch_name" class="form-label">Batch Name</label>
+                                    <input type="text" class="form-control" id="batch_name" name="batch_name" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="batch_language" class="form-label">Language</label>
+                                    <select class="form-control" id="batch_language" name="batch_language" required>
+                                        <option value="">Select Language</option>
+                                        <option value="Hindi">Hindi</option>
+                                        <option value="English">English</option>
+                                        <option value="Hinglish">Hinglish</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="batch_exam" class="form-label">Exam</label>
+                                    <input type="text" class="form-control" id="batch_exam" name="batch_exam" placeholder="e.g., JEE Main 2024, NEET 2024" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="batch_class" class="form-label">Class</label>
+                                    <select class="form-control" id="batch_class" name="batch_class" required>
+                                        <option value="">Select Class</option>
+                                        <option value="Class 9">Class 9</option>
+                                        <option value="Class 10">Class 10</option>
+                                        <option value="Class 11">Class 11</option>
+                                        <option value="Class 12">Class 12</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="batch_image" class="form-label">Preview Image URL</label>
+                                <input type="url" class="form-control" id="batch_image" name="batch_image" placeholder="https://example.com/image.jpg">
+                                <small class="text-muted">Leave empty to use default placeholder image</small>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>Add Batch
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
                 <!-- Current Enrolled Batches -->
                 <?php 
                 $currentEnrolled = [];
@@ -397,6 +483,12 @@ if (isset($_SESSION['admin_logged_in'])) {
                     </div>
                 </div>
                 <?php endif; ?>
+                
+                <!-- Divider -->
+                <hr class="my-4">
+                
+                <!-- Available Batches from API -->
+                <h3 class="mb-4"><i class="fas fa-database me-2"></i>Available Batches from API</h3>
                 
                 <?php if (empty($batches)): ?>
                 <div class="loading">
