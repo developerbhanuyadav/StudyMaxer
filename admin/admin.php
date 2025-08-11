@@ -1,3 +1,82 @@
+<?php
+session_start();
+
+// Handle login
+if ($_POST['action'] ?? '' === 'login') {
+    $password = $_POST['password'] ?? '';
+    if ($password === 'admin123') {
+        $_SESSION['admin_logged_in'] = true;
+        header('Location: admin.php');
+        exit;
+    } else {
+        $error = 'Incorrect password!';
+    }
+}
+
+// Handle logout
+if ($_GET['logout'] ?? '' === '1') {
+    unset($_SESSION['admin_logged_in']);
+    header('Location: admin.php');
+    exit;
+}
+
+// Handle batch addition
+if ($_POST['action'] ?? '' === 'add_batch') {
+    $batchId = $_POST['batch_id'] ?? '';
+    if ($batchId) {
+        $enrolledBatches = isset($_SESSION['enrolledBatches']) ? $_SESSION['enrolledBatches'] : [];
+        
+        // Load all batches to find the one to add
+        $allBatches = [];
+        try {
+            $response = file_get_contents('https://pwxavengers-proxy.pw-avengers.workers.dev/api/batches?page=1&limit=3000');
+            $data = json_decode($response, true);
+            if ($data && isset($data['batches'])) {
+                $allBatches = $data['batches'];
+            }
+        } catch (Exception $e) {
+            $error = 'Failed to load batches';
+        }
+        
+        // Find and add the batch
+        foreach ($allBatches as $batch) {
+            if ($batch['_id'] === $batchId) {
+                // Check if not already enrolled
+                $alreadyEnrolled = false;
+                foreach ($enrolledBatches as $enrolled) {
+                    if ($enrolled['_id'] === $batchId) {
+                        $alreadyEnrolled = true;
+                        break;
+                    }
+                }
+                
+                if (!$alreadyEnrolled) {
+                    $enrolledBatches[] = $batch;
+                    $_SESSION['enrolledBatches'] = $enrolledBatches;
+                    $success = 'Batch added successfully!';
+                } else {
+                    $error = 'Batch is already added!';
+                }
+                break;
+            }
+        }
+    }
+}
+
+// Load batches for display
+$batches = [];
+if (isset($_SESSION['admin_logged_in'])) {
+    try {
+        $response = file_get_contents('https://pwxavengers-proxy.pw-avengers.workers.dev/api/batches?page=1&limit=3000');
+        $data = json_decode($response, true);
+        if ($data && isset($data['batches'])) {
+            $batches = $data['batches'];
+        }
+    } catch (Exception $e) {
+        $error = 'Failed to load batches';
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -83,30 +162,61 @@
                     <a href="../index.php" class="btn btn-outline-light">
                         <i class="fas fa-home me-2"></i>Back to Home
                     </a>
+                    <?php if (isset($_SESSION['admin_logged_in'])): ?>
+                    <a href="?logout=1" class="btn btn-outline-light ms-2">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
     </header>
 
+    <?php if (isset($error)): ?>
+    <div class="container mt-3">
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i><?php echo htmlspecialchars($error); ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if (isset($success)): ?>
+    <div class="container mt-3">
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i><?php echo htmlspecialchars($success); ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <!-- Login Form -->
-    <div id="login-section" class="container">
+    <?php if (!isset($_SESSION['admin_logged_in'])): ?>
+    <div class="container">
         <div class="login-container">
             <h3 class="text-center mb-4"><i class="fas fa-lock me-2"></i>Admin Login</h3>
-            <form id="login-form">
+            <form method="POST">
+                <input type="hidden" name="action" value="login">
                 <div class="mb-3">
                     <label for="password" class="form-label">Password</label>
-                    <input type="password" class="form-control" id="password" required>
+                    <input type="password" class="form-control" id="password" name="password" required>
                 </div>
                 <button type="submit" class="btn btn-primary w-100">Login</button>
             </form>
         </div>
     </div>
+    <?php else: ?>
 
     <!-- Admin Panel Content -->
-    <div id="admin-content" class="container mt-4" style="display: none;">
+    <div class="container mt-4">
         <div class="row">
             <div class="col-12">
                 <h2 class="mb-4">Add Batches</h2>
+                
+                <?php if (empty($batches)): ?>
+                <div class="loading">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-3 text-danger"></i>
+                    <p>Error loading batches. Please try again.</p>
+                </div>
+                <?php else: ?>
                 
                 <!-- Select All Section -->
                 <div class="select-all-container">
@@ -127,139 +237,49 @@
                     </div>
                 </div>
 
-                <!-- Loading -->
-                <div id="loading" class="loading">
-                    <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
-                    <p>Loading batches...</p>
-                </div>
-
                 <!-- Batches Grid -->
-                <div id="batches-grid" class="row" style="display: none;">
-                    <!-- Batches will be loaded here -->
+                <div class="row">
+                    <?php foreach ($batches as $batch): ?>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card batch-card">
+                            <div class="card-header bg-transparent">
+                                <div class="form-check">
+                                    <input class="form-check-input batch-checkbox" type="checkbox" 
+                                           value="<?php echo htmlspecialchars($batch['_id']); ?>">
+                                    <label class="form-check-label">Select</label>
+                                </div>
+                            </div>
+                            <img src="<?php echo htmlspecialchars($batch['previewImage'] ?? 'https://via.placeholder.com/400x200?text=No+Image'); ?>" 
+                                 class="batch-image" alt="<?php echo htmlspecialchars($batch['name']); ?>">
+                            <div class="batch-info">
+                                <h6 class="batch-title"><?php echo htmlspecialchars($batch['name']); ?></h6>
+                                <div class="batch-meta">
+                                    <div><i class="fas fa-language me-2"></i><?php echo htmlspecialchars($batch['language']); ?></div>
+                                    <div><i class="fas fa-calendar me-2"></i><?php echo htmlspecialchars($batch['exam']); ?></div>
+                                    <div><i class="fas fa-user-graduate me-2"></i><?php echo htmlspecialchars($batch['class']); ?></div>
+                                </div>
+                                <form method="POST" style="display: inline;">
+                                    <input type="hidden" name="action" value="add_batch">
+                                    <input type="hidden" name="batch_id" value="<?php echo htmlspecialchars($batch['_id']); ?>">
+                                    <button type="submit" class="btn btn-add w-100">
+                                        <i class="fas fa-plus me-2"></i>Add Batch
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
                 </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const ADMIN_PASSWORD = 'admin123'; // You can change this password
-        
-        // Login functionality
-        document.getElementById('login-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const password = document.getElementById('password').value;
-            
-            if (password === ADMIN_PASSWORD) {
-                document.getElementById('login-section').style.display = 'none';
-                document.getElementById('admin-content').style.display = 'block';
-                loadBatches();
-            } else {
-                alert('Incorrect password!');
-            }
-        });
-
-        // Load batches from API
-        async function loadBatches() {
-            try {
-                const response = await fetch('https://pwxavengers-proxy.pw-avengers.workers.dev/api/batches?page=1&limit=3000');
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Store all batches in localStorage
-                    localStorage.setItem('allBatches', JSON.stringify(data.batches));
-                    displayBatches(data.batches);
-                } else {
-                    throw new Error('Failed to load batches');
-                }
-            } catch (error) {
-                console.error('Error loading batches:', error);
-                document.getElementById('loading').innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        Error loading batches. Please try again.
-                    </div>
-                `;
-            }
-        }
-
-        // Display batches in grid
-        function displayBatches(batches) {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('batches-grid').style.display = 'block';
-            
-            const grid = document.getElementById('batches-grid');
-            grid.innerHTML = batches.map(batch => `
-                <div class="col-md-6 col-lg-4">
-                    <div class="card batch-card">
-                        <img src="${batch.previewImage || 'https://via.placeholder.com/400x200?text=No+Image'}" 
-                             class="batch-image" alt="${batch.name}">
-                        <div class="batch-info">
-                            <h6 class="batch-title">${batch.name}</h6>
-                            <div class="batch-meta">
-                                <div><i class="fas fa-language me-2"></i>${batch.language}</div>
-                                <div><i class="fas fa-calendar me-2"></i>${batch.exam}</div>
-                                <div><i class="fas fa-user-graduate me-2"></i>${batch.class}</div>
-                            </div>
-                            <button class="btn btn-add w-100" onclick="addBatch('${batch._id}')">
-                                <i class="fas fa-plus me-2"></i>Add Batch
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // Add single batch
-        function addBatch(batchId) {
-            const allBatches = JSON.parse(localStorage.getItem('allBatches') || '[]');
-            const batch = allBatches.find(b => b._id === batchId);
-            
-            if (batch) {
-                const enrolledBatches = JSON.parse(localStorage.getItem('enrolledBatches') || '[]');
-                
-                if (!enrolledBatches.find(b => b._id === batchId)) {
-                    enrolledBatches.push(batch);
-                    localStorage.setItem('enrolledBatches', JSON.stringify(enrolledBatches));
-                    alert('Batch added successfully!');
-                } else {
-                    alert('Batch is already added!');
-                }
-            }
-        }
-
-        // Add selected batches
-        function addSelectedBatches() {
-            const checkboxes = document.querySelectorAll('.batch-checkbox:checked');
-            const allBatches = JSON.parse(localStorage.getItem('allBatches') || '[]');
-            const enrolledBatches = JSON.parse(localStorage.getItem('enrolledBatches') || '[]');
-            
-            let addedCount = 0;
-            
-            checkboxes.forEach(checkbox => {
-                const batchId = checkbox.value;
-                const batch = allBatches.find(b => b._id === batchId);
-                
-                if (batch && !enrolledBatches.find(b => b._id === batchId)) {
-                    enrolledBatches.push(batch);
-                    addedCount++;
-                }
-            });
-            
-            if (addedCount > 0) {
-                localStorage.setItem('enrolledBatches', JSON.stringify(enrolledBatches));
-                alert(`${addedCount} batches added successfully!`);
-                
-                // Uncheck all checkboxes
-                document.querySelectorAll('.batch-checkbox').forEach(cb => cb.checked = false);
-                document.getElementById('select-all').checked = false;
-            } else {
-                alert('No new batches to add!');
-            }
-        }
-
         // Select all functionality
-        document.getElementById('select-all').addEventListener('change', function() {
+        document.getElementById('select-all')?.addEventListener('change', function() {
             const checkboxes = document.querySelectorAll('.batch-checkbox');
             checkboxes.forEach(checkbox => {
                 checkbox.checked = this.checked;
@@ -267,47 +287,46 @@
         });
 
         // Update select all when individual checkboxes change
+        document.querySelectorAll('.batch-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateSelectAll();
+            });
+        });
+
         function updateSelectAll() {
             const checkboxes = document.querySelectorAll('.batch-checkbox');
             const selectAll = document.getElementById('select-all');
             const checkedCount = document.querySelectorAll('.batch-checkbox:checked').length;
             
-            selectAll.checked = checkedCount === checkboxes.length;
-            selectAll.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
+            if (selectAll) {
+                selectAll.checked = checkedCount === checkboxes.length;
+                selectAll.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
+            }
         }
 
-        // Modified displayBatches function to include checkboxes
-        function displayBatches(batches) {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('batches-grid').style.display = 'block';
+        // Add selected batches
+        function addSelectedBatches() {
+            const checkboxes = document.querySelectorAll('.batch-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert('Please select at least one batch!');
+                return;
+            }
+
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.innerHTML = '<input type="hidden" name="action" value="add_batch">';
             
-            const grid = document.getElementById('batches-grid');
-            grid.innerHTML = batches.map(batch => `
-                <div class="col-md-6 col-lg-4">
-                    <div class="card batch-card">
-                        <div class="card-header bg-transparent">
-                            <div class="form-check">
-                                <input class="form-check-input batch-checkbox" type="checkbox" 
-                                       value="${batch._id}" onchange="updateSelectAll()">
-                                <label class="form-check-label">Select</label>
-                            </div>
-                        </div>
-                        <img src="${batch.previewImage || 'https://via.placeholder.com/400x200?text=No+Image'}" 
-                             class="batch-image" alt="${batch.name}">
-                        <div class="batch-info">
-                            <h6 class="batch-title">${batch.name}</h6>
-                            <div class="batch-meta">
-                                <div><i class="fas fa-language me-2"></i>${batch.language}</div>
-                                <div><i class="fas fa-calendar me-2"></i>${batch.exam}</div>
-                                <div><i class="fas fa-user-graduate me-2"></i>${batch.class}</div>
-                            </div>
-                            <button class="btn btn-add w-100" onclick="addBatch('${batch._id}')">
-                                <i class="fas fa-plus me-2"></i>Add Batch
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+            checkboxes.forEach(checkbox => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'batch_ids[]';
+                input.value = checkbox.value;
+                form.appendChild(input);
+            });
+            
+            document.body.appendChild(form);
+            form.submit();
         }
     </script>
 </body>
