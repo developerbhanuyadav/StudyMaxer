@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "_id": "test_batch_1",
+    "name": "Mathematics Complete Course",
+    "language": "Hindi",
+    "exam": "JEE Main 2024",
+    "class": "Class 12",
+    "previewImage": "https://via.placeholder.com/400x200?text=Mathematics+Course"
+  },
+  {
+    "_id": "test_batch_2",
+    "name": "Physics Fundamentals",
+    "language": "English",
+    "exam": "NEET 2024",
+    "class": "Class 12",
+    "previewImage": "https://via.placeholder.com/400x200?text=Physics+Course"
+  },
+  {
+    "_id": "test_batch_3",
+    "name": "Chemistry Advanced",
+    "language": "Hinglish",
+    "exam": "JEE Advanced 2024",
+    "class": "Class 12",
+    "previewImage": "https://via.placeholder.com/400x200?text=Chemistry+Course"
+  }
+]
