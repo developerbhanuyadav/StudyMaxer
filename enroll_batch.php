@@ -38,8 +38,11 @@ if (!$batch) {
     exit;
 }
 
-// Get current enrolled batches
-$enrolledBatches = isset($_SESSION['enrolledBatches']) ? $_SESSION['enrolledBatches'] : [];
+// Get current enrolled batches from JSON file
+$enrolledBatches = [];
+if (file_exists('batches.json')) {
+    $enrolledBatches = json_decode(file_get_contents('batches.json'), true) ?: [];
+}
 
 // Check if already enrolled
 foreach ($enrolledBatches as $enrolled) {
@@ -51,7 +54,7 @@ foreach ($enrolledBatches as $enrolled) {
 
 // Add to enrolled batches
 $enrolledBatches[] = $batch;
-$_SESSION['enrolledBatches'] = $enrolledBatches;
+file_put_contents('batches.json', json_encode($enrolledBatches, JSON_PRETTY_PRINT));
 
 echo json_encode(['success' => true, 'message' => 'Successfully enrolled in batch']);
 ?>
