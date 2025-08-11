@@ -4,6 +4,8 @@ $enrolledBatches = [];
 if (file_exists('batches.json')) {
     $enrolledBatches = json_decode(file_get_contents('batches.json'), true) ?: [];
 }
+
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
